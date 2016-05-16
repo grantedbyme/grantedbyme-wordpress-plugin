@@ -1,0 +1,42 @@
+{
+    "name": "grantedbyme/grantedbyme-wordpress-plugin",
+    "description": "grantedby.me WordPress Plugin",
+    "homepage": "https://grantedby.me",
+    "authors": [
+        {
+            "name": "GrantedByMe",
+            "email": "info@grantedby.me",
+            "homepage": "https://grantedby.me"
+        }
+    ],
+    "type": "wordpress-plugin",
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/phpseclib/phpseclib"
+        },
+        {
+            "type": "git",
+            "url": "https://github.com/YahnisElsts/plugin-update-checker"
+        },
+        {
+            "type": "git",
+            "url": "https://github.com/grantedbyme/grantedbyme-php-sdk"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.2",
+        "composer/installers": "*",
+        "phpseclib/phpseclib": "dev-master",
+        "yahnis-elsts/plugin-update-checker": "dev-master",
+        "grantedbyme/grantedbyme": "dev-develop",
+        "monolog/monolog": "*"
+    },
+    "scripts": {
+        "post-update-cmd": [
+        ],
+        "post-install-cmd": [
+        ]
+    },
+    "minimum-stability": "dev"
+}

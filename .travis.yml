@@ -1,0 +1,4 @@
+# travis-ci.org
+language: php
+script:
+  - ls
