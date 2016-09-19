@@ -232,7 +232,7 @@ class GrantedByMeSettingsPage
                 }
             }
         }
-        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-activation';
+        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-activation&noheader=true';
         ?>
         <div class='wrap'>
             <h2>GrantedByMe Activation</h2>
@@ -331,7 +331,7 @@ class GrantedByMeSettingsPage
                 exit;
             }
         }
-        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-deactivation';
+        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-deactivation&noheader=true';
         ?>
         <div class='wrap'>
             <h2>GrantedByMe Deactivation</h2>
@@ -456,7 +456,7 @@ class GrantedByMeSettingsPage
                 //$this->log->addInfo('saved: ' . $is_saved, $this->options);
             }
         }
-        //$post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-preferences';
+        //$post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-preferences&noheader=true';
         ?>
         <div class='wrap'>
             <h2>GrantedByMe Preferences</h2>
