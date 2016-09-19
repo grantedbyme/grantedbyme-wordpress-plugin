@@ -204,11 +204,9 @@ class GrantedByMeSettingsPage
                 );
             }
             if ($has_errors == false) {
-                // generate secure random user hash
-                $grantor = \GBM\ApiRequest::getRandomToken();
                 // call to GBM API
                 try {
-                    $api_result = $this->gbm->activateService($service_key, $grantor);
+                    $api_result = $this->gbm->activateService($service_key);
                 } catch (Exception $e) {
                     $this->log->addInfo('Caught exception: ' . $e->getMessage());
                 }
@@ -223,7 +221,6 @@ class GrantedByMeSettingsPage
                     }
                     $current_user_id = get_current_user_id();
                     // TODO: check for user_id == 0 and handle the error
-                    $this->options['users'][$current_user_id] = $api_result['grantor'];
                     $is_saved = update_option('grantedbyme_option_name', $this->options);
                     //$this->log->addInfo('saved: ' . $is_saved, $this->options);
                     // redirect to preferences
@@ -325,12 +322,6 @@ class GrantedByMeSettingsPage
                 );
             }
             if ($has_errors == false) {
-                try {
-                    $api_result = $this->gbm->deactivateService();
-                    $this->log->addInfo('deactivate result', $api_result);
-                } catch (Exception $e) {
-                    $this->log->addInfo('Caught exception: ' . $e->getMessage());
-                }
                 $this->options = array();
                 $is_saved = update_option('grantedbyme_option_name', $this->options);
                 //$this->log->addInfo('saved: ' . $is_saved, $this->options);

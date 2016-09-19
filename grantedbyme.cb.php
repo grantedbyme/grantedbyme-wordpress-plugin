@@ -28,7 +28,7 @@ $ajax = new GrantedByMeWPCallback();
  */
 class GrantedByMeWPCallback
 {
-    private static $ALLOWED_OPERATIONS = array('ping', 'deactivate_service', 'rekey_service', 'deactivate_account', 'rekey_account');
+    private static $ALLOWED_OPERATIONS = array('ping', 'unlink_account', 'rekey_account');
     private static $LOGGER;
 
     /**
@@ -41,48 +41,36 @@ class GrantedByMeWPCallback
             self::$LOGGER->pushHandler(new StreamHandler(__DIR__ . '/data/app.log', Logger::INFO));
         }
         //self::$LOGGER->addInfo('Callback', $_REQUEST);
-
         //$headers = getallheaders();
         //self::$LOGGER->addInfo('Headers', $headers);
-
-        if (!isset($_POST['signature'])
-            || !isset($_POST['payload'])
-            || !isset($_POST['message'])
-        ) {
+        if (!isset($_POST['signature']) || !isset($_POST['payload'])) {
             $this->gbm_error('Encryption error');
         }
-
         $cipherRequest = array();
         $cipherRequest['signature'] = $_POST['signature'];
         $cipherRequest['payload'] = $_POST['payload'];
-        $cipherRequest['message'] = $_POST['message'];
-
+        if(isset($_POST['message'])) {
+            $cipherRequest['message'] = $_POST['message'];
+        }
         $gbm = GrantedByMeWP::init_sdk();
         $plainRequest = $gbm->getCrypto()->decrypt_json($cipherRequest);
-
         self::$LOGGER->addInfo('Request', $plainRequest);
-
-        if (!isset($plainRequest['operation'])
-            || !in_array($plainRequest['operation'], self::$ALLOWED_OPERATIONS)
-        ) {
+        if (!isset($plainRequest['operation'])) {
             $this->gbm_error('Operation not set');
         }
-
+        if (!in_array($plainRequest['operation'], self::$ALLOWED_OPERATIONS)) {
+            $this->gbm_error('Operation not allowed: ' . $plainRequest['operation']);
+        }
         $is_success = false;
         $operation = $plainRequest['operation'];
         $response = array();
-
         if ($operation == 'ping') {
             $is_success = true;
-        } else if ($operation == 'deactivate_service') {
-            $is_success = update_option('grantedbyme_option_name', array());
-        } else if ($operation == 'rekey_service') {
-            // TODO: implement key renewal
-        } else if ($operation == 'deactivate_account') {
+        } else if ($operation == 'unlink_account') {
             $options = get_option('grantedbyme_option_name');
             foreach ($options['users'] as $key => $value) {
                 if (hash('sha512', $value) == $plainRequest['token']) {
-                    self::$LOGGER->addInfo('Deactivating account: ' . $key);
+                    self::$LOGGER->addInfo('Unlink account: ' . $key);
                     unset($options['users'][$key]);
                     $is_success = update_option('grantedbyme_option_name', $options);
                     break;

@@ -283,8 +283,8 @@ class GrantedByMeWP
             } elseif (empty($_POST['GrantedByMe-token'])) {
                 wp_die('GrantedByMe token empty!');
             } else {
-                $token = $_POST['GrantedByMe-token'];
-                if (!self::gbm_is_granted($token)) {
+                $challenge = $_POST['GrantedByMe-token'];
+                if (!self::gbm_is_granted($challenge)) {
                     wp_die('Unauthorized GrantedByMe session.');
                     $_POST['GrantedByMe-token'] = '';
                 }
@@ -436,14 +436,14 @@ class GrantedByMeWP
     }
 
     /**
-     * @param $token
+     * @param $challenge
      * @return bool
      */
-    private static function gbm_is_granted($token)
+    private static function gbm_is_granted($challenge)
     {
         $isGranted = false;
         try {
-            $response = self::$gbm->getSessionState($token);
+            $response = self::$gbm->getChallengeState($challenge);
             if ($response['status'] == \GBM\ApiRequest::$STATUS_VALIDATED) {
                 $isGranted = true;
             }

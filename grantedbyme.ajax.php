@@ -54,7 +54,7 @@ class GrantedByMeWPAjax
             || !isset($headers['X-CSRFToken'])
             || !wp_verify_nonce($headers['X-CSRFToken'], 'csrf-token')
             || (($operation == 'getAccountState' || $operation == 'getSessionState' || $operation == 'getRegisterState')
-                && (!isset($_POST['token']) || !is_string($_POST['token']) || empty($_POST['token'])))
+                && (!isset($_POST['challenge']) || !is_string($_POST['challenge']) || empty($_POST['challenge'])))
             || (($operation == 'getAccountToken' || $operation == 'getAccountState')
                 && !is_user_logged_in())
         ) {
@@ -63,17 +63,17 @@ class GrantedByMeWPAjax
         }
         // call api
         if ($operation == 'getAccountToken') {
-            $response = GrantedByMeWP::init_sdk()->getAccountToken();
+            $response = GrantedByMeWP::init_sdk()->getChallenge(\GBM\ApiRequest::$TOKEN_ACCOUNT);
             die(json_encode($response));
         } else if ($operation == 'getAccountState') {
             $this->gbm_get_account_state();
         } else if ($operation == 'getSessionToken') {
-            $response = GrantedByMeWP::init_sdk()->getSessionToken();
+            $response = GrantedByMeWP::init_sdk()->getChallenge(\GBM\ApiRequest::$TOKEN_SESSION);
             die(json_encode($response));
         } else if ($operation == 'getSessionState') {
             $this->gbm_get_session_state();
         } else if ($operation == 'getRegisterToken') {
-            $response = GrantedByMeWP::init_sdk()->getRegisterToken();
+            $response = GrantedByMeWP::init_sdk()->getChallenge(\GBM\ApiRequest::$TOKEN_ACTIVATE);
             die(json_encode($response));
         } else if ($operation == 'getRegisterState') {
             $this->gbm_get_register_state();
@@ -89,14 +89,14 @@ class GrantedByMeWPAjax
      */
     private function gbm_get_account_state()
     {
-        $response = GrantedByMeWP::init_sdk()->getSessionState($_POST['token']);
+        $response = GrantedByMeWP::init_sdk()->getChallengeState($_POST['challenge']);
         if (isset($response['status']) && $response['status'] == \GBM\ApiRequest::$STATUS_VALIDATED) {
-            $grantor = \GBM\ApiRequest::getRandomToken();
-            $result = GrantedByMeWP::init_sdk()->linkAccount($_POST['token'], $grantor);
+            $authenticator_secret = \GBM\ApiRequest::generateAuthenticatorSecret();
+            $result = GrantedByMeWP::init_sdk()->linkAccount($_POST['challenge'], $authenticator_secret);
             if (isset($result['success']) && $result['success'] == true) {
                 $user_id = get_current_user_id();
                 $options = get_option('grantedbyme_option_name');
-                $options['users'][$user_id] = $grantor;
+                $options['users'][$user_id] = $authenticator_secret;
                 $is_saved = update_option('grantedbyme_option_name', $options);
             } else {
                 $this->log->addInfo('User account link error: ' . $result['error']);
@@ -112,15 +112,15 @@ class GrantedByMeWPAjax
      */
     private function gbm_get_session_state()
     {
-        $response = GrantedByMeWP::init_sdk()->getSessionState($_POST['token']);
+        $response = GrantedByMeWP::init_sdk()->getChallengeState($_POST['challenge']);
         if (isset($response['status']) && $response['status'] == \GBM\ApiRequest::$STATUS_VALIDATED) {
-            if (isset($response['grantor'])) {
-                $_SESSION['gbm_token'] = $_POST['token'];
-                $this->gbm_login($response['grantor']);
+            if (isset($response['authenticator_secret'])) {
+                $_SESSION['gbm_token'] = $_POST['challenge'];
+                $this->gbm_login($response['authenticator_secret']);
                 // do not send secret to frontend
-                unset($response['grantor']);
+                unset($response['authenticator_secret']);
             } else {
-                $this->log->addInfo('Login error with empty grantor');
+                $this->log->addInfo('Login error with empty authenticator secret');
                 header('HTTP/1.0 401 Unauthorized');
                 $this->gbm_error();
             }
@@ -135,7 +135,7 @@ class GrantedByMeWPAjax
      */
     private function gbm_get_register_state()
     {
-        $response = GrantedByMeWP::init_sdk()->getSessionState($_POST['token']);
+        $response = GrantedByMeWP::init_sdk()->getChallengeState($_POST['challenge']);
         if (isset($response['status']) && $response['status'] == \GBM\ApiRequest::$STATUS_VALIDATED) {
             if (isset($response['data'])) {
                 $this->gbm_register($response['data']);
@@ -173,11 +173,11 @@ class GrantedByMeWPAjax
             $user_id = wp_insert_user($userdata) ;
             if (!is_wp_error($user_id)) {
                 $this->log->addInfo('User created: ' . $user_id);
-                $grantor = \GBM\ApiRequest::getRandomToken();
-                $result = GrantedByMeWP::init_sdk()->linkAccount($_POST['token'], $grantor);
+                $authenticator_secret = \GBM\ApiRequest::generateAuthenticatorSecret();
+                $result = GrantedByMeWP::init_sdk()->linkAccount($_POST['challenge'], $authenticator_secret);
                 if (isset($result['success']) && $result['success'] == true) {
                     $options = get_option('grantedbyme_option_name');
-                    $options['users'][$user_id] = $grantor;
+                    $options['users'][$user_id] = $authenticator_secret;
                     $is_saved = update_option('grantedbyme_option_name', $options);
                     $this->log->addInfo('User account linked: ' . $user_id);
                 } else {
@@ -194,13 +194,13 @@ class GrantedByMeWPAjax
     /**
      * Log-in WordPress user
      *
-     * @param $grantor
+     * @param $authenticator_secret
      */
-    private function gbm_login($grantor)
+    private function gbm_login($authenticator_secret)
     {
-        if (!empty($grantor)) {
+        if (!empty($authenticator_secret)) {
             $options = get_option('grantedbyme_option_name');
-            $user_id = array_search($grantor, $options['users'], true);
+            $user_id = array_search($authenticator_secret, $options['users'], true);
             $user = get_user_by('id', esc_attr($user_id));
             if ($user) {
                 $this->log->addInfo('Login success with user_id: ' . $user_id);
@@ -208,7 +208,7 @@ class GrantedByMeWPAjax
                 wp_set_auth_cookie($user->ID);
                 do_action('wp_login', $user->user_login);
             } else {
-                $this->log->addInfo('Login error with grantor: ' . $grantor);
+                $this->log->addInfo('Login error with authenticator_secret: ' . $authenticator_secret);
                 header('HTTP/1.0 401 Unauthorized');
                 $this->gbm_error();
             }
