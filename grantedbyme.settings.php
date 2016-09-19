@@ -232,7 +232,7 @@ class GrantedByMeSettingsPage
                 }
             }
         }
-        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-activation&noheader=true';
+        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-activation';
         ?>
         <div class='wrap'>
             <h2>GrantedByMe Activation</h2>
@@ -331,7 +331,7 @@ class GrantedByMeSettingsPage
                 exit;
             }
         }
-        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-deactivation&noheader=true';
+        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-deactivation';
         ?>
         <div class='wrap'>
             <h2>GrantedByMe Deactivation</h2>
@@ -446,17 +446,17 @@ class GrantedByMeSettingsPage
                     'success'
                 );
                 // get form data
-                if ($_POST['grantedbyme_option_name']['auth_mode']) {
+                if (isset($_POST['grantedbyme_option_name']['auth_mode'])) {
                     $this->options['auth_mode'] = intval($_POST['grantedbyme_option_name']['auth_mode']);
                 }
-                if ($_POST['grantedbyme_option_name']['api_url']) {
+                if (isset($_POST['grantedbyme_option_name']['api_url'])) {
                     $this->options['api_url'] = trim($_POST['grantedbyme_option_name']['api_url']);
                 }
                 $is_saved = update_option('grantedbyme_option_name', $this->options);
                 //$this->log->addInfo('saved: ' . $is_saved, $this->options);
             }
         }
-        $post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-preferences&noheader=true';
+        //$post_url = site_url() . '/wp-admin/admin.php?page=grantedbyme-preferences';
         ?>
         <div class='wrap'>
             <h2>GrantedByMe Preferences</h2>
