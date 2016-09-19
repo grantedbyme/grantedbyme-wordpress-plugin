@@ -223,8 +223,8 @@ class GrantedByMeSettingsPage
                     // TODO: check for user_id == 0 and handle the error
                     $is_saved = update_option('grantedbyme_option_name', $this->options);
                     //$this->log->addInfo('saved: ' . $is_saved, $this->options);
-                    // redirect to preferences
-                    $redirect_url = add_query_arg('settings-updated', 'true', site_url() . '/wp-admin/admin.php?page=grantedbyme-preferences');
+                    // redirect to account page
+                    $redirect_url = add_query_arg('settings-updated', 'true', site_url() . '/wp-admin/admin.php?page=grantedbyme-account');
                     wp_redirect($redirect_url);
                     exit;
                 } else if (isset($api_result) && is_array($api_result)) {
@@ -491,7 +491,7 @@ class GrantedByMeSettingsPage
     {
         $v = isset($this->options['api_url']) ? esc_attr($this->options['api_url']) : $this->gbm->getApiUrl();
         ?>
-        <input size='30' id='api_url' name='grantedbyme_option_name[api_url]' value='<?php echo $v; ?>'/>
+        <input disabled size='30' id='api_url' name='grantedbyme_option_name[api_url]' value='<?php echo $v; ?>'/>
         <?php
     }
 
