@@ -100,6 +100,8 @@ class GrantedByMeWPAjax
                 $is_saved = update_option('grantedbyme_option_name', $options);
             } else {
                 $this->log->addInfo('User account link error: ' . $result['error']);
+                $_SESSION['gbm_form_error'] = 'api_error';
+                $_SESSION['gbm_form_error_code'] = $result['error'];
             }
         }
         die(json_encode($response));
@@ -184,7 +186,7 @@ class GrantedByMeWPAjax
                     $this->log->addInfo('User account link error: ' . $result['error']);
                 }
             } else {
-                $this->log->addInfo('User registration error: ' . $user_id);
+                $this->log->addInfo('User registration error: ' . $user_id->get_error_message());
             }
         } else {
             $this->gbm_error();
@@ -200,8 +202,12 @@ class GrantedByMeWPAjax
     {
         if (!empty($authenticator_secret)) {
             $options = get_option('grantedbyme_option_name');
-            $user_id = array_search($authenticator_secret, $options['users'], true);
-            $user = get_user_by('id', esc_attr($user_id));
+            if(isset($options['users'])) {
+                $user_id = array_search($authenticator_secret, $options['users'], true);
+                $user = get_user_by('id', esc_attr($user_id));
+            } else {
+                $user = false;
+            }
             if ($user) {
                 $this->log->addInfo('Login success with user_id: ' . $user_id);
                 wp_set_current_user($user->ID, $user->user_login);
@@ -213,6 +219,7 @@ class GrantedByMeWPAjax
                 $this->gbm_error();
             }
         } else {
+            $this->log->addInfo('Users not exists');
             $this->gbm_error();
         }
     }

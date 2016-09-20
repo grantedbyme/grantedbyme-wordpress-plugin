@@ -32,10 +32,10 @@ class GrantedByMeOptions
         if ($current_user_id == 0) {
             return false;
         }
-        if(!isset($options['users'][$current_user_id])) {
+        if(!isset($options['users']) || !isset($options['users'][$current_user_id])) {
             return false;
         }
-        $user_hash = $options['users'][$current_user_id];
-        return isset($user_hash) && !empty($user_hash) && strlen($user_hash) >= 128;
+        $authenticator_secret = $options['users'][$current_user_id];
+        return isset($authenticator_secret) && !empty($authenticator_secret) && strlen($authenticator_secret) >= 128;
     }
 }
