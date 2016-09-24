@@ -117,7 +117,7 @@ class GrantedByMeWPAjax
         $response = GrantedByMeWP::init_sdk()->getChallengeState($_POST['challenge']);
         if (isset($response['status']) && $response['status'] == \GBM\ApiRequest::$STATUS_VALIDATED) {
             if (isset($response['authenticator_secret'])) {
-                $_SESSION['gbm_token'] = $_POST['challenge'];
+                $_SESSION['gbm_challenge'] = $_POST['challenge'];
                 $this->gbm_login($response['authenticator_secret']);
                 // do not send secret to frontend
                 unset($response['authenticator_secret']);

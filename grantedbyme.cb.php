@@ -69,7 +69,7 @@ class GrantedByMeWPCallback
         } else if ($operation == 'unlink_account') {
             $options = get_option('grantedbyme_option_name');
             foreach ($options['users'] as $key => $value) {
-                if (hash('sha512', $value) == $plainRequest['token']) {
+                if (hash('sha512', $value) == $plainRequest['authenticator_secret_hash']) {
                     self::$LOGGER->addInfo('Unlink account: ' . $key);
                     unset($options['users'][$key]);
                     $is_success = update_option('grantedbyme_option_name', $options);
@@ -79,7 +79,7 @@ class GrantedByMeWPCallback
         } else if ($operation == 'rekey_account') {
             $options = get_option('grantedbyme_option_name');
             foreach ($options['users'] as $key => $value) {
-                if (hash('sha512', $value) == $plainRequest['token']) {
+                if (hash('sha512', $value) == $plainRequest['authenticator_secret_hash']) {
                     $response['grantor'] = $value;
                     break;
                 }

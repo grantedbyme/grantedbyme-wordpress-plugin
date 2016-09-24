@@ -251,12 +251,12 @@ class GrantedByMeSettingsPage
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
             } else if($form_error == 'service_key_error') {
-                $form_errors->add($form_error, __('Missing or invalid service key'));
+                $form_errors->add($form_error, __('Invalid service key'));
                 add_settings_error(
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
             } else if($form_error == 'api_exception') {
-                $form_errors->add($form_error, __('Invalid service key'));
+                $form_errors->add($form_error, __('Service key error'));
                 add_settings_error(
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
@@ -301,14 +301,12 @@ class GrantedByMeSettingsPage
             'grantedbyme_option_name', // Option name
             array($this, 'gbm_admin_sanitize') // Sanitize
         );
-
         add_settings_section(
             'setting_section_id', // ID
             'Activation Settings', // Title
             array($this, 'gbm_admin_activation_info'), // Callback
             'grantedbyme-activation' // Page
         );
-
         add_settings_field(
             'service_key',
             'Service key',
@@ -349,23 +347,15 @@ class GrantedByMeSettingsPage
             if (!wp_verify_nonce($_POST['_token'], 'csrf-token')) {
                 $_SESSION['gbm_form_error'] = 'csrf_error';
             } else {
-                try {
-                    $api_result = $this->gbm->deactivateService();
-                    if (isset($api_result) && is_array($api_result)) {
-                        $this->log->addInfo('API result', $api_result);
-                    }
-                    if (isset($api_result) && isset($api_result['success']) && $api_result['success'] == true) {
-                        $this->options = array();
-                        $is_saved = update_option('grantedbyme_option_name', $this->options);
-                        $this->log->addInfo('GrantedByMe service deactivated');
-                        wp_redirect(site_url() . '/wp-admin/admin.php?page=grantedbyme-activation');
-                        exit;
-                    } else {
-                        $_SESSION['gbm_form_error'] = 'api_error';
-                    }
-                } catch (Exception $e) {
-                    $this->log->addInfo('Caught exception: ' . $e->getMessage());
-                    $_SESSION['gbm_form_error'] = 'api_exception';
+                $service_key = trim($_POST['grantedbyme_option_name']['service_key']);
+                if (!isset($service_key) /*|| $service_key != $this->options['service_key']*/) {
+                    $_SESSION['gbm_form_error'] = 'service_key_error';
+                } else {
+                    $this->options = array();
+                    $is_saved = update_option('grantedbyme_option_name', $this->options);
+                    $this->log->addInfo('GrantedByMe service deactivated');
+                    wp_redirect(site_url() . '/wp-admin/admin.php?page=grantedbyme-activation');
+                    exit;
                 }
             }
         }
@@ -385,13 +375,8 @@ class GrantedByMeSettingsPage
                 add_settings_error(
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
-            } else if($form_error == 'api_exception') {
-                $form_errors->add($form_error, __('Error while deactivating'));
-                add_settings_error(
-                    $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
-                );
-            } else if($form_error == 'api_error') {
-                $form_errors->add($form_error, __('Invalid or already deactivated service'));
+            } else if($form_error == 'service_key_error') {
+                $form_errors->add($form_error, __('Invalid service key'));
                 add_settings_error(
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
@@ -430,12 +415,18 @@ class GrantedByMeSettingsPage
             'grantedbyme_option_name', // Option name
             array($this, 'gbm_admin_sanitize') // Sanitize
         );
-
         add_settings_section(
             'setting_section_id', // ID
             'Deactivation Settings', // Title
             array($this, 'gbm_admin_deactivation_info'), // Callback
             'grantedbyme-deactivation' // Page
+        );
+        add_settings_field(
+            'service_key',
+            'Service key',
+            array($this, 'gbm_service_key_callback'),
+            'grantedbyme-deactivation',
+            'setting_section_id'
         );
     }
 

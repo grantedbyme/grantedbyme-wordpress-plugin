@@ -79,6 +79,7 @@ class GrantedByMeWP
             // authenticating
             add_action('login_form', array('GrantedByMeWP', 'gbm_login_form'));
             add_filter('wp_authenticate_user', array('GrantedByMeWP', 'gbm_login_validate'), 10, 2);
+            add_action('wp_logout', array('GrantedByMeWP', 'gbm_logout'));
             // registering
             add_action('register_form', array('GrantedByMeWP', 'gbm_register_form'));
             add_filter('registration_errors', array('GrantedByMeWP', 'gbm_register_validate'), 10, 3);
@@ -105,23 +106,18 @@ class GrantedByMeWP
     public static function init_sdk()
     {
         $base_dir = GBM_PLUGIN_DIR . 'data/';
-        if (file_exists($base_dir . 'service_key.cfg')) {
-            //$public_key = file_get_contents($base_dir . 'service_public_key.pem');
+        if (file_exists($base_dir . 'service_private_key.pem')) {
             $private_key = file_get_contents($base_dir . 'service_private_key.pem');
             $server_key = file_get_contents($base_dir . 'server_public_key.pem');
-            $service_key = file_get_contents($base_dir . 'service_key.cfg');
         } else if (
             isset(self::$options['private_key']) &&
-            isset(self::$options['server_key']) &&
-            isset(self::$options['service_key'])
+            isset(self::$options['server_key'])
         ) {
             $private_key = self::$options['private_key'];
             $server_key = self::$options['server_key'];
-            $service_key = self::$options['service_key'];
         } else {
             $private_key = false;
             $server_key = false;
-            $service_key = false;
         }
         if (isset(self::$options['api_url'])) {
             $api_url = self::$options['api_url'];
@@ -129,7 +125,6 @@ class GrantedByMeWP
             $api_url = \GBM\ApiSettings::$HOST;
         }
         $config = array();
-        $config['service_key'] = $service_key;
         $config['private_key'] = $private_key;
         $config['public_key'] = $server_key;
         $config['api_url'] = $api_url;
@@ -336,6 +331,23 @@ class GrantedByMeWP
         return $user;
     }
 
+    /**
+     * TBD
+     */
+    public static function gbm_logout()
+    {
+        self::log_info('gbm_logout');
+        if(isset($_SESSION['gbm_challenge'])) {
+            self::log_info('Logging out GBM user.');
+            try {
+                $response = self::$gbm->revokeChallenge($_SESSION['gbm_challenge']);
+            } catch (Exception $e) {
+                self::log_info('RevokeChallenge exception');
+            }
+            unset($_SESSION['gbm_challenge']);
+        }
+    }
+
     ////////////////////////////////////////
     // Register
     ////////////////////////////////////////
@@ -448,6 +460,7 @@ class GrantedByMeWP
                 $isGranted = true;
             }
         } catch (Exception $e) {
+            self::log_info('getChallengeState exception');
         }
         return $isGranted;
     }
@@ -470,10 +483,10 @@ class GrantedByMeWP
     public static function gbm_check_session()
     {
         //self::log_info('gbm_check_session: ' . current_action());
-        if(isset($_SESSION['gbm_token'])
-            && !self::gbm_is_granted($_SESSION['gbm_token'])) {
+        if(isset($_SESSION['gbm_challenge'])
+            && !self::gbm_is_granted($_SESSION['gbm_challenge'])) {
             self::log_info('GBM Session is expired, logging out user.');
-            unset($_SESSION['gbm_token']);
+            unset($_SESSION['gbm_challenge']);
             wp_logout();
             wp_redirect( home_url() );
         }
