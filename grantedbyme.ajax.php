@@ -28,7 +28,6 @@ $ajax = new GrantedByMeWPAjax();
  */
 class GrantedByMeWPAjax
 {
-    private static $ALLOWED_OPERATIONS = array('getAccountToken', 'getAccountState', 'getSessionToken', 'getSessionState', 'getRegisterToken', 'getRegisterState');
     private $log;
 
     /**
@@ -41,42 +40,39 @@ class GrantedByMeWPAjax
         // get all request headers
         $headers = getallheaders();
         // get function (action)
-        if (!isset($_POST['operation'])) {
+        if (!isset($_POST['operation']) || !isset($_POST['challenge_type'])) {
             header('HTTP/1.0 400 Bad Request');
             $this->gbm_error();
         }
         $operation = $_POST['operation'];
+        $challenge_type = intval($_POST['challenge_type']);
         // validate request
         if (!isset($operation)
-            || !in_array($operation, self::$ALLOWED_OPERATIONS)
             || !isset($_SERVER['HTTP_X_REQUESTED_WITH'])
             || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest'
             || !isset($headers['X-CSRFToken'])
             || !wp_verify_nonce($headers['X-CSRFToken'], 'csrf-token')
-            || (($operation == 'getAccountState' || $operation == 'getSessionState' || $operation == 'getRegisterState')
+            || (($operation == 'getChallengeState')
                 && (!isset($_POST['challenge']) || !is_string($_POST['challenge']) || empty($_POST['challenge'])))
-            || (($operation == 'getAccountToken' || $operation == 'getAccountState')
-                && !is_user_logged_in())
+            || ($operation == 'getChallenge' && $challenge_type == \GBM\ApiRequest::$CHALLENGE_AUTHORIZE && !is_user_logged_in())
         ) {
             header('HTTP/1.0 400 Bad Request');
             $this->gbm_error();
         }
         // call api
-        if ($operation == 'getAccountToken') {
-            $response = GrantedByMeWP::init_sdk()->getChallenge(\GBM\ApiRequest::$TOKEN_ACCOUNT);
+        if ($operation == 'getChallenge') {
+            $response = GrantedByMeWP::init_sdk()->getChallenge($challenge_type);
             die(json_encode($response));
-        } else if ($operation == 'getAccountState') {
-            $this->gbm_get_account_state();
-        } else if ($operation == 'getSessionToken') {
-            $response = GrantedByMeWP::init_sdk()->getChallenge(\GBM\ApiRequest::$TOKEN_SESSION);
-            die(json_encode($response));
-        } else if ($operation == 'getSessionState') {
-            $this->gbm_get_session_state();
-        } else if ($operation == 'getRegisterToken') {
-            $response = GrantedByMeWP::init_sdk()->getChallenge(\GBM\ApiRequest::$TOKEN_ACTIVATE);
-            die(json_encode($response));
-        } else if ($operation == 'getRegisterState') {
-            $this->gbm_get_register_state();
+        } else if ($operation == 'getChallengeState') {
+            if($challenge_type == \GBM\ApiRequest::$CHALLENGE_AUTHORIZE) {
+                $this->gbm_get_account_state();
+            } else if($challenge_type == \GBM\ApiRequest::$CHALLENGE_AUTHENTICATE) {
+                $this->gbm_get_session_state();
+            } else if($challenge_type == \GBM\ApiRequest::$CHALLENGE_PROFILE) {
+                $this->gbm_get_register_state();
+            } else {
+                $this->gbm_error();
+            }
         } else {
             $this->gbm_error();
         }
@@ -99,9 +95,10 @@ class GrantedByMeWPAjax
                 $options['users'][$user_id] = $authenticator_secret;
                 $is_saved = update_option('grantedbyme_option_name', $options);
             } else {
-                $this->log->addInfo('User account link error: ' . $result['error']);
+                $this->log->addInfo('User account link error: ' . $result['error_message'] . ' (' . $result['error'] . ')');
                 $_SESSION['gbm_form_error'] = 'api_error';
                 $_SESSION['gbm_form_error_code'] = $result['error'];
+                $_SESSION['gbm_form_error_message'] = $result['error_message'];
             }
         }
         die(json_encode($response));
@@ -182,11 +179,18 @@ class GrantedByMeWPAjax
                     $options['users'][$user_id] = $authenticator_secret;
                     $is_saved = update_option('grantedbyme_option_name', $options);
                     $this->log->addInfo('User account linked: ' . $user_id);
+                    $this->gbm_login($authenticator_secret);
+                    $_SESSION['gbm_registration_completed'] = true;
                 } else {
-                    $this->log->addInfo('User account link error: ' . $result['error']);
+                    $this->log->addInfo('User account link error: ' . $result['error_message'] . ' (' . $result['error'] . ')');
+                    $_SESSION['gbm_form_error'] = 'api_error';
+                    $_SESSION['gbm_form_error_code'] = $result['error'];
+                    $_SESSION['gbm_form_error_message'] = $result['error_message'];
                 }
             } else {
                 $this->log->addInfo('User registration error: ' . $user_id->get_error_message());
+                $_SESSION['gbm_form_error'] = 'registration_error';
+                $_SESSION['gbm_form_error_message'] = $user_id->get_error_message();
             }
         } else {
             $this->gbm_error();
@@ -214,12 +218,12 @@ class GrantedByMeWPAjax
                 wp_set_auth_cookie($user->ID);
                 do_action('wp_login', $user->user_login);
             } else {
-                $this->log->addInfo('Login error with authenticator_secret: ' . $authenticator_secret);
+                $this->log->addInfo('Login error: user not found');
                 header('HTTP/1.0 401 Unauthorized');
                 $this->gbm_error();
             }
         } else {
-            $this->log->addInfo('Users not exists');
+            $this->log->addInfo('Login error: empty authentication secret');
             $this->gbm_error();
         }
     }
@@ -231,7 +235,7 @@ class GrantedByMeWPAjax
     {
         $response = array();
         $response['success'] = false;
-        $response['error'] = 'Restricted access';
+        $response['error'] = 1;
         die(json_encode($response));
     }
 

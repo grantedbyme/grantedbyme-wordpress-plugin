@@ -73,6 +73,9 @@ class GrantedByMeWP
         self::$is_initialized = true;
         // check for activated plugin
         if (self::$gbm->isActivated()) {
+            // common
+            add_action('init', array('GrantedByMeWP', 'gbm_init'));
+            add_action('wp_loaded', array('GrantedByMeWP', 'gbm_loaded'));
             // commenting
             add_action('comment_form', array('GrantedByMeWP', 'gbm_comment_form'));
             add_filter('preprocess_comment', array('GrantedByMeWP', 'gbm_comment_validate'));
@@ -247,8 +250,28 @@ class GrantedByMeWP
     {
         $user = get_userdata($user_id);
         if ('gbm_hash' == $column_name && isset(self::$options['users'][$user->ID]))
-            return 'Active';
+            return 'Connected';
         return $value;
+    }
+
+    ////////////////////////////////////////
+    // Common
+    ////////////////////////////////////////
+
+    /**
+     * Called in loaded phase
+     */
+    public static function gbm_init()
+    {
+        //self::log_info('gbm_init');
+    }
+
+    /**
+     * Called in loaded phase
+     */
+    public static function gbm_loaded()
+    {
+        //self::log_info('gbm_loaded');
     }
 
     ////////////////////////////////////////
@@ -359,6 +382,16 @@ class GrantedByMeWP
     {
         self::log_info('gbm_register_form');
         wp_nonce_field('csrf-token', '_token');
+        if(isset($_SESSION["gbm_form_error_message"])) {
+            ?>
+            <div id="login_error"><strong>ERROR: </strong> <?php echo $_SESSION["gbm_form_error_message"]; ?></div>
+            <?php
+            unset($_SESSION["gbm_form_error_message"]);
+        } else if(isset($_SESSION['gbm_registration_completed'])) {
+            unset($_SESSION['gbm_registration_completed']);
+            wp_redirect( home_url() );
+            exit;
+        }
         self::gbm_widget_show();
     }
 
@@ -489,6 +522,7 @@ class GrantedByMeWP
             unset($_SESSION['gbm_challenge']);
             wp_logout();
             wp_redirect( home_url() );
+            exit;
         }
     }
 
@@ -532,35 +566,30 @@ class GrantedByMeWP
         self::log_info('gbm_localize_script: ' . current_action());
         $callback_type = 'reload';
         $redirect_url = '/';
-        $init_call = 'getAccountToken';
-        $poll_call = 'getAccountState';
+        $challengeType = 'authenticate';
         if (current_action() == 'login_form') {
             $callback_type = 'redirect';
-            $redirect_url = get_home_url();
-            $init_call = 'getSessionToken';
-            $poll_call = 'getSessionState';
+            $redirect_url = home_url();
+            $challengeType = 'authenticate';
         } else if (current_action() == 'register_form') {
             // get_option('users_can_register') == 1
-            $callback_type = 'redirect';
-            $redirect_url = get_home_url();
-            $init_call = 'getRegisterToken';
-            $poll_call = 'getRegisterState';
+            $callback_type = 'reload';
+            //$redirect_url = get_home_url();
+            $challengeType = 'profile';
         } else if (is_user_logged_in()) {
             $callback_type = 'post';
-            $init_call = 'getAccountToken';
-            $poll_call = 'getAccountState';
+            $challengeType = 'authorize';
         } else {
             self::log_info('Illegal operation error');
         }
-        $post_token = isset($_POST['GrantedByMe-token']) ? $_POST['GrantedByMe-token'] : '';
+        $challenge = isset($_POST['GrantedByMe-token']) ? $_POST['GrantedByMe-token'] : '';
         $ajax_url = wp_make_link_relative(plugins_url('grantedbyme.ajax.php', __FILE__));
         wp_localize_script('grantedbyme', 'pluginURLs', array(
             'ajaxURL' => $ajax_url,
             'callbackType' => $callback_type,
             'redirectURL' => $redirect_url,
-            'postToken' => $post_token,
-            'initCall' => $init_call,
-            'pollCall' => $poll_call
+            'challenge' => $challenge,
+            'challengeType' => $challengeType
         ));
     }
 

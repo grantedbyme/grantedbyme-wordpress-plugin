@@ -118,7 +118,7 @@ class GrantedByMeSettingsPage
     {
         ?>
         <div class='wrap'>
-            <h2>GrantedByMe Settings</h2>
+            <h2>GrantedByMe Dashboard</h2>
         </div>
         <?php
     }
@@ -491,7 +491,7 @@ class GrantedByMeSettingsPage
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
             } else if($form_error == 'api_error') {
-                $form_errors->add($form_error, __('API error: ' . $_SESSION['gbm_form_error_code']));
+                $form_errors->add($form_error, __('API error: ' . $_SESSION['gbm_form_error_message']));
                 add_settings_error(
                     $form_error, esc_attr($form_error), $form_errors->get_error_message($form_error), $form_error
                 );
