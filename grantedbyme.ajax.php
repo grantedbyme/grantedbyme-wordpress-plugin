@@ -37,27 +37,31 @@ class GrantedByMeWPAjax
     {
         $this->log = new Logger('GrantedByMeWPAjax');
         $this->log->pushHandler(new StreamHandler(__DIR__ . '/data/app.log', Logger::INFO));
-        // get all request headers
         $headers = getallheaders();
-        // get function (action)
+        $csrf_token = false;
+        if (isset($headers['X-CSRFToken'])) {
+            $csrf_token = $headers['X-CSRFToken'];
+        } else if(isset($headers['x-csrftoken'])) {
+            $csrf_token = $headers['x-csrftoken'];
+        } else {
+            $this->gbm_error('Missing CSRF token');
+        }
+        if (!wp_verify_nonce($csrf_token, 'csrf-token')) {
+            $this->gbm_error('Invalid CSRF token: ' . $csrf_token);
+        }
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+            $this->gbm_error('Invalid AJAX request');
+        }
         if (!isset($_POST['operation']) || !isset($_POST['challenge_type'])) {
-            header('HTTP/1.0 400 Bad Request');
-            $this->gbm_error();
+            $this->gbm_error('Missing operation or challenge_type parameter');
         }
         $operation = $_POST['operation'];
         $challenge_type = intval($_POST['challenge_type']);
-        // validate request
-        if (!isset($operation)
-            || !isset($_SERVER['HTTP_X_REQUESTED_WITH'])
-            || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest'
-            || !isset($headers['X-CSRFToken'])
-            || !wp_verify_nonce($headers['X-CSRFToken'], 'csrf-token')
-            || (($operation == 'getChallengeState')
-                && (!isset($_POST['challenge']) || !is_string($_POST['challenge']) || empty($_POST['challenge'])))
-            || ($operation == 'getChallenge' && $challenge_type == \GBM\ApiRequest::$CHALLENGE_AUTHORIZE && !is_user_logged_in())
-        ) {
-            header('HTTP/1.0 400 Bad Request');
-            $this->gbm_error();
+        if ($operation == 'getChallengeState' && (!isset($_POST['challenge']) || !is_string($_POST['challenge']) || empty($_POST['challenge']))) {
+            $this->gbm_error('Invalid parameter');
+        }
+        if ($operation == 'getChallenge' && $challenge_type == \GBM\ApiRequest::$CHALLENGE_AUTHORIZE && !is_user_logged_in()) {
+            $this->gbm_error('Invalid login state for account linking');
         }
         // call api
         if ($operation == 'getChallenge') {
@@ -71,10 +75,10 @@ class GrantedByMeWPAjax
             } else if($challenge_type == \GBM\ApiRequest::$CHALLENGE_PROFILE) {
                 $this->gbm_get_register_state();
             } else {
-                $this->gbm_error();
+                $this->gbm_error('Invalid challenge type');
             }
         } else {
-            $this->gbm_error();
+            $this->gbm_error('Invalid operation');
         }
     }
 
@@ -119,9 +123,8 @@ class GrantedByMeWPAjax
                 // do not send secret to frontend
                 unset($response['authenticator_secret']);
             } else {
-                $this->log->addInfo('Login error with empty authenticator secret');
                 header('HTTP/1.0 401 Unauthorized');
-                $this->gbm_error();
+                $this->gbm_error('Login error with empty authenticator secret');
             }
         }
         die(json_encode($response));
@@ -141,9 +144,7 @@ class GrantedByMeWPAjax
                 // do not send secret to frontend
                 unset($response['data']);
             } else {
-                $this->log->addInfo('Register error with empty data');
-                header('HTTP/1.0 401 Unauthorized');
-                $this->gbm_error();
+                $this->gbm_error('Register error with empty data');
             }
         }
         die(json_encode($response));
@@ -193,7 +194,7 @@ class GrantedByMeWPAjax
                 $_SESSION['gbm_form_error_message'] = $user_id->get_error_message();
             }
         } else {
-            $this->gbm_error();
+            $this->gbm_error('Empty registration data');
         }
     }
 
@@ -218,21 +219,22 @@ class GrantedByMeWPAjax
                 wp_set_auth_cookie($user->ID);
                 do_action('wp_login', $user->user_login);
             } else {
-                $this->log->addInfo('Login error: user not found');
                 header('HTTP/1.0 401 Unauthorized');
-                $this->gbm_error();
+                $this->gbm_error('Login error: user not found');
             }
         } else {
-            $this->log->addInfo('Login error: empty authentication secret');
-            $this->gbm_error();
+            $this->gbm_error('Login error: empty authentication secret');
         }
     }
 
     /**
      * Generic error handler
+     *
+     * @param $reason
      */
-    private function gbm_error()
+    private function gbm_error($reason)
     {
+        $this->log->addInfo($reason);
         $response = array();
         $response['success'] = false;
         $response['error'] = 1;
