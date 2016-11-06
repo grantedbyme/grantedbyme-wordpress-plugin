@@ -4,8 +4,8 @@
 Plugin Name: GrantedBy.Me
 Plugin URI: https://grantedby.me
 Description: The plugin provides password-free authentication with the GrantedBy.Me mobile app.
-Version: 1.0.10
-Author: GrantedBy.Me Ltd.
+Version: 1.0.11
+Author: Torii Gate Kft.
 Author URI: https://grantedby.me
 License: MIT
 */
@@ -17,7 +17,7 @@ if (!function_exists('add_action')) {
 }
 
 // Constants
-define('GBM_VERSION', '1.0.10');
+define('GBM_VERSION', '1.0.11');
 define('GBM_MINIMUM_WP_VERSION', '3.2');
 define('GBM_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GBM_PLUGIN_DIR', plugin_dir_path(__FILE__));

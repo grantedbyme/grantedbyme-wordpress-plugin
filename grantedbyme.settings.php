@@ -56,12 +56,21 @@ class GrantedByMeSettingsPage
         // initialize gbm sdk
         $this->gbm = GrantedByMeWP::gbm_get_sdk();
         // setup wp admin hooks
+        add_action('admin_enqueue_scripts', array($this, 'load_gbm_wp_admin_style'));
         add_action('admin_menu', array($this, 'gbm_admin_menu'));
         add_action('admin_init', array($this, 'gbm_admin_init'));
         add_action('admin_post_update', array($this, 'gbm_admin_post_update'));
         // extension for /wp-admin/admin-ajax.php
         // add_action('wp_ajax_ajax_action', array($this, 'gbm_ajax_admin'));
         // add_action('wp_ajax_nopriv_ajax_action', array($this, 'gbm_ajax_nopriv'));
+    }
+
+    /**
+     * Admin style
+     */
+    function load_gbm_wp_admin_style() {
+        wp_register_style( 'custom_wp_admin_css', GBM_PLUGIN_URL . 'css/gbm-style.css', false, false );
+        wp_enqueue_style( 'custom_wp_admin_css' );
     }
 
     /**
@@ -85,14 +94,14 @@ class GrantedByMeSettingsPage
      */
     public function gbm_admin_menu()
     {
-        add_menu_page('Settings', 'GrantedByMe', 'read', 'grantedbyme-home', array($this, 'create_admin_page'));
+        add_menu_page('Settings', 'GrantedByMe', 'read', 'grantedbyme-home', array($this, 'create_admin_page'), plugins_url('/img/icon-gbm.png', __FILE__));
         if ($this->gbm->isActivated()) {
             if (!GrantedByMeOptions::gbm_is_current_account_linked()) {
                 add_submenu_page('grantedbyme-home', 'Account', 'Account', 'read', 'grantedbyme-account', array($this, 'create_account_page'));
             }
-            add_submenu_page('grantedbyme-home', 'Deactivation', 'Deactivate', 'edit_plugins', 'grantedbyme-deactivation', array($this, 'create_deactivation_page'));
+            add_submenu_page('grantedbyme-home', 'Deactivation', 'Disconnect', 'edit_plugins', 'grantedbyme-deactivation', array($this, 'create_deactivation_page'));
         } else {
-            add_submenu_page('grantedbyme-home', 'Activation', 'Activate', 'edit_plugins', 'grantedbyme-activation', array($this, 'create_activation_page'));
+            add_submenu_page('grantedbyme-home', 'Activation', 'Connect', 'edit_plugins', 'grantedbyme-activation', array($this, 'create_activation_page'));
         }
         //add_submenu_page('grantedbyme-home', 'Preferences', 'Preferences', 'edit_plugins', 'grantedbyme-preferences', array($this, 'create_preferences_page'));
     }
@@ -117,8 +126,19 @@ class GrantedByMeSettingsPage
     public function create_admin_page()
     {
         ?>
-        <div class='wrap'>
-            <h2>GrantedByMe Dashboard</h2>
+        <div class="wrap gbm-container-main">
+            <div class="gbm-header">
+                <img src="<?= plugins_url( '/img/grantedbyeme-logo@2x.png', __FILE__ ) ?>" class="gbm-logo"
+                     alt="GrantedBy.Me logo"/>
+                <h1>Welcome</h1>
+                <hr class="gbm-hr"/>
+            </div>
+            <div class="gbm-g">
+                <div class="gbm-u-1 gbm-footer">
+                    Copyright © 2016
+                    <a href="https://www.grantedby.me" class="gbm-link">GrantedBy.Me</a> - All rights reserved.
+                </div>
+            </div>
         </div>
         <?php
     }
@@ -274,19 +294,103 @@ class GrantedByMeSettingsPage
         }
         // error handler end
         ?>
-        <div class='wrap'>
-            <h2>GrantedByMe Activation</h2>
+        <div class="wrap gbm-container-main">
+            <div class="gbm-header">
+                <img src="<?= GBM_PLUGIN_URL?>img/grantedbyeme-logo@2x.png" class="gbm-logo"
+                     alt="GrantedBy.Me logo"/>
+                <h1>Connect Service</h1>
+                <hr />
+                <p>Congratulation! <br>You have successfully activated the GrantedBy.Me WordPress plugin. After only a few, short steps, you will be able to use everything our service has to offer!</p>
+                <hr class="gbm-hr" />
+            </div>
+            <div class="gbm-g gbm-block">
+                <div class="gbm-u-1 gbm-u-sm-1-5 gbm-numbering">
+                    <img class="gbm-numbering-icon" src="<?= GBM_PLUGIN_URL?>img/icon-1.png" />
+                </div>
+                <div class="gbm-u-1 gbm-u-sm-4-5 gbm-box-info">
+                    <div class="gbm-g">
+                        <div class="gbm-u-1 gbm-u-sm-1-2 gbm-box-info--text">
+                            <div class="gbm-l-box">
+                                <div class="gbm-u-1">
+                                    Download our mobile application! Create a new account, or connect your device to an already existing account!
+                                </div>
+                                <div class="gbm-u-1">
+                                    <a href="https://itunes.apple.com/app/grantedby.me/id1141721329?mt=8" target="_new">
+                                        <img class="gbm-badge-app gbm-img-centered" src="<?= GBM_PLUGIN_URL?>img/storebadge-app.png" alt="Download GrantedBy.Me app from the App store" />
+                                    </a>
+                                </div>
+                                <div class="gbm-u-1">
+                                    <a href="https://play.google.com/store/apps/details?id=com.grantedbyme.android.auth" target="_new">
+                                        <img class="gbm-badge-app gbm-img-centered" src="<?= GBM_PLUGIN_URL?>img/storebadge-play.png" />
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gbm-u-1 gbm-u-sm-1-2 gbm-box-info--graph gbm-image-bottom">
+                            <div class="gbm-l-box">
+                                <img class="gbm-img-centered" src="<?= GBM_PLUGIN_URL?>img/illustration-download-grantedbyme-app.png" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="gbm-g gbm-block">
+                <div class="gbm-u-1 gbm-u-sm-1-5 gbm-numbering">
+                    <img class="gbm-numbering-icon" src="<?= GBM_PLUGIN_URL?>img/icon-2.png" />
+                </div>
+                <div class="gbm-u-1 gbm-u-sm-4-5 gbm-box-info">
+                    <div class="gbm-g">
+                        <div class="gbm-u-1 gbm-u-sm-1-2 gbm-box-info--text">
+                            <div class="gbm-l-box">
+                                <div class="gbm-u-1">
+                                    To create a new service, please visit the following website.
+                                    <p>Use the mobile application to access the following address: <strong><a href="http://services.grantedby.me" target="_new">services.grantedby.me</a></strong> and create a new service on the page.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gbm-u-1 gbm-u-sm-1-2 gbm-box-info--graph">
+                            <div class="gbm-l-box">
+                                <img class="gbm-img-centered" src="<?= GBM_PLUGIN_URL?>img/illustration-create-services.png" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="gbm-g gbm-block">
+                <div class="gbm-u-1 gbm-u-sm-1-5 gbm-numbering">
+                    <img class="gbm-numbering-icon" src="<?= GBM_PLUGIN_URL?>img/icon-3.png" />
+                </div>
+                <div class="gbm-u-1 gbm-u-sm-4-5 gbm-box-info">
+                    <div class="gbm-g">
+                        <div class="gbm-u-1 gbm-box-info--text">
+                            <div class="gbm-l-box">
+                                <div class="gbm-u-1">
+                                    To connect your service copy the generated Service key into the field below:
+                                    <form class="gbm-form" method='post' action='<?php echo site_url() . '/wp-admin/admin-post.php' ?>'>
+                                        <?php wp_nonce_field('csrf-token', '_token'); ?>
+                                        <input type='hidden' name='form_action' value='activation'/>
+                                        <?php
+                                        // This prints out all hidden setting fields
+                                        settings_fields('grantedbyme_option_group');
+                                        do_settings_sections('grantedbyme-activation');
+//                                        $other_attributes = array( 'id' => 'gbm_connect_button' );
+//                                        submit_button('Connect Service', 'gbm-btn gbm-btn-lg gbm-btn-primary', 'gbm_connect_button', true, $other_attributes);
+                                        ?>
+                                        <button id="gbm_connect_button" class="gbm-btn gbm-btn-lg gbm-btn-primary" type="submit">Connect Service</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            <form method='post' action='<?php echo site_url() . '/wp-admin/admin-post.php' ?>'>
-                <?php wp_nonce_field('csrf-token', '_token'); ?>
-                <input type='hidden' name='form_action' value='activation'/>
-                <?php
-                // This prints out all hidden setting fields
-                settings_fields('grantedbyme_option_group');
-                do_settings_sections('grantedbyme-activation');
-                submit_button();
-                ?>
-            </form>
+            <div class="gbm-g">
+                <div class="gbm-u-1 gbm-footer">
+                    Copyright © 2016
+                    <a href="https://www.grantedby.me" class="gbm-link">GrantedBy.Me</a> - All rights reserved.
+                </div>
+            </div>
         </div>
         <?php
     }
@@ -303,7 +407,7 @@ class GrantedByMeSettingsPage
         );
         add_settings_section(
             'setting_section_id', // ID
-            'Activation Settings', // Title
+            false, // Title
             array($this, 'gbm_admin_activation_info'), // Callback
             'grantedbyme-activation' // Page
         );
@@ -322,7 +426,6 @@ class GrantedByMeSettingsPage
     public function gbm_admin_activation_info()
     {
         settings_errors();
-        echo 'Please enter your activation information:';
     }
 
     /**
@@ -331,7 +434,7 @@ class GrantedByMeSettingsPage
     public function gbm_service_key_callback()
     {
         printf(
-            '<textarea rows="3" cols="40" id="service_key" name="grantedbyme_option_name[service_key]">%s</textarea>',
+            '<textarea rows="4" cols="30" id="service_key" name="grantedbyme_option_name[service_key]">%s</textarea>',
             isset($this->options['service_key']) ? esc_attr($this->options['service_key']) : ''
         );
     }
@@ -388,8 +491,13 @@ class GrantedByMeSettingsPage
             unset($_SESSION['gbm_form_error']);
         }
         ?>
-        <div class='wrap'>
-            <h2>GrantedByMe Deactivation</h2>
+        <div class="wrap gbm-container-main">
+            <div class="gbm-header">
+                <img src="<?= plugins_url( '/img/grantedbyeme-logo@2x.png', __FILE__ ) ?>" class="gbm-logo"
+                     alt="GrantedBy.Me logo"/>
+                <h1>Disconnect Service</h1>
+                <hr class="gbm-hr"/>
+            </div>
 
             <form method='post' action='<?php echo site_url() . '/wp-admin/admin-post.php' ?>'>
                 <?php wp_nonce_field('csrf-token', '_token'); ?>
@@ -401,6 +509,12 @@ class GrantedByMeSettingsPage
                 submit_button();
                 ?>
             </form>
+            <div class="gbm-g">
+                <div class="gbm-u-1 gbm-footer">
+                    Copyright © 2016
+                    <a href="https://www.grantedby.me" class="gbm-link">GrantedBy.Me</a> - All rights reserved.
+                </div>
+            </div>
         </div>
         <?php
     }
@@ -503,8 +617,13 @@ class GrantedByMeSettingsPage
             unset($_SESSION['gbm_form_error']);
         }
         ?>
-        <h2>GrantedByMe Account</h2>
-        <div class='wrap'>
+        <div class="wrap gbm-container-main">
+            <div class="gbm-header">
+                <img src="<?= plugins_url( '/img/grantedbyeme-logo@2x.png', __FILE__ ) ?>" class="gbm-logo"
+                     alt="GrantedBy.Me logo"/>
+                <h1>Account</h1>
+                <hr class="gbm-hr"/>
+            </div>
             <form id="registerform" method='post' action='<?php echo site_url() . '/wp-admin/admin-post.php' ?>'>
                 <?php wp_nonce_field('csrf-token', '_token'); ?>
                 <input type='hidden' name='form_action' value='account'/>
@@ -515,6 +634,12 @@ class GrantedByMeSettingsPage
                 //submit_button();
                 ?>
             </form>
+            <div class="gbm-g">
+                <div class="gbm-u-1 gbm-footer">
+                    Copyright © 2016
+                    <a href="https://www.grantedby.me" class="gbm-link">GrantedBy.Me</a> - All rights reserved.
+                </div>
+            </div>
         </div>
         <?php
         GrantedByMeWP::gbm_enqueue_asset();
@@ -616,8 +741,13 @@ class GrantedByMeSettingsPage
             }
         }
         ?>
-        <div class='wrap'>
-            <h2>GrantedByMe Preferences</h2>
+        <div class="wrap gbm-container-main">
+            <div class="gbm-header">
+                <img src="<?= plugins_url( '/img/grantedbyeme-logo@2x.png', __FILE__ ) ?>" class="gbm-logo"
+                     alt="GrantedBy.Me logo"/>
+                <h1>Preferences</h1>
+                <hr class="gbm-hr"/>
+            </div>
 
             <form method='post' action=''>
                 <?php wp_nonce_field('csrf-token', '_token'); ?>
@@ -629,6 +759,12 @@ class GrantedByMeSettingsPage
                 submit_button();
                 ?>
             </form>
+            <div class="gbm-g">
+                <div class="gbm-u-1 gbm-footer">
+                    Copyright © 2016
+                    <a href="https://www.grantedby.me" class="gbm-link">GrantedBy.Me</a> - All rights reserved.
+                </div>
+            </div>
         </div>
         <?php
     }
